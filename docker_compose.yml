@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  dc:
+    image: winshuttle/activedirectory
+    container_name: dc
+    networks:
+      - net
+    ports:
+      - "389:389" # LDAP
+      - "636:636" # LDAPS
+
+  ids:
+    image: mkodockx/docker-snort
+    container_name: ids
+    networks:
+      - net
+    ports:
+      - "2525:2525"
+
+  log:
+    image: splunk/splunk:latest
+    container_name: log
+    environment:
+      - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_PASSWORD=changeme
+    networks:
+      - net
+    ports:
+      - "8000:8000"
+      - "8088:8088"
+      - "8090:8090"
+
+  web01:
+    image: httpd:latest
+    container_name: web01
+    networks:
+      - net
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./web01:/usr/local/apache2/htdocs/
+
+  web02:
+    image: fauria/vsftpd
+    container_name: web02
+    networks:
+      - net
+    ports:
+      - "20:20"
+      - "21:21"
+      - "21100-21110:21100-21110"
+    environment:
+      - FTP_USER=user
+      - FTP_PASS=pass
+      - PASV_ADDRESS=127.0.0.1
+      - PASV_MIN_PORT=21100
+      - PASV_MAX_PORT=21110
+    volumes:
+      - ./web02:/home/vsftpd
+
+  selectel:
+    image: httpd:latest
+    container_name: selectel
+    networks:
+      - net
+    ports:
+      - "8443:443"
+    volumes:
+      - ./selectel:/usr/local/apache2/htdocs/
+
+networks:
+  net:
+    driver: bridge
+
